@@ -32,7 +32,7 @@ library(ggplot2)
 library(corrplot)
 
 # Set working directory if needed
-#setwd("")
+#setwd("/")
 
 # Output plots to pdf and or eps
 plot_pdf <- F
@@ -256,19 +256,18 @@ mean_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lc
 #   mean_perf_algo - dataframe consisting of the columns "experiment" (indicating the dataset) 
 #        "num_train" (indicating the number of training examples) "algo" (indicating the algorithm) 
 #        "perf" (indicating the performance for a previously selected measure)
-plot_algo_lcurve_exp <- function(mean_perf_algo){
-  require(RColorBrewer)
-  
+plot_algo_lcurve_exp <- function(mean_perf_algo,sd_perf_algo,ylab_lcurve="Median absolute error (s)"){
   # Get a list of all algorithms
-  unique_algo <- unique(mean_perf_algo$algo)
+  unique_algo <- as.character(c("BRR","LASSO","ANN","AB","GB","RF","SVR")) #
   # Get a list of all datasets
   unique_exp <- unique(mean_perf_algo$experiment)
-  
-  # Match the algorithms to a color
+  set_cols = c("black","blue","red","lightblue","magenta","yellow","darkgreen")
+
   matchcols = data.frame(unique_algo=unique_algo,
-                         color= c("black","grey","blue","lightblue","magenta","red","green"),
-                         ltype=1:length(unique_algo))
-  
+                         color_set= as.character(set_cols),
+                         ltype_set=1:length(unique_algo),
+                         stringsAsFactors=FALSE)
+  print(matchcols)
   # Iterate over the datasets
   for (j in unique_exp){
     # Make sure we have enough training examples
@@ -276,31 +275,39 @@ plot_algo_lcurve_exp <- function(mean_perf_algo){
       # Make an initial plot without any learning curve  
       plot(0,0,ylim=c(min(mean_perf_algo[mean_perf_algo$experiment == j,]$perf)-0.01,max(mean_perf_algo[mean_perf_algo$experiment == j,]$perf)+0.01),
            xlim=c(0,max(mean_perf_algo[mean_perf_algo$experiment == j,]$num_train)),
-           main=j,xlab="Training examples",ylab="Median absolute error (s)")
+           main=j,xlab="Training examples",ylab=ylab_lcurve)
       # Fill the initialized plot by iterating over the different algorithms
+      #print(mean_perf_algo[mean_perf_algo$experiment == j])
       for (i in unique_algo){
         # Extract the algorithm
         temp_mean_perf_algo <- mean_perf_algo[mean_perf_algo$experiment == j & mean_perf_algo$algo == i,]
         
         # Plot the line
         lines(temp_mean_perf_algo$num_train,temp_mean_perf_algo$perf,type="l",
-              col=matchcols$color[matchcols$unique_algo==i],
+              col=matchcols$color_set[matchcols$unique_algo==i],
               lty=3)
         
         # Add points to the line for every step
         points(temp_mean_perf_algo$num_train,temp_mean_perf_algo$perf,
-               col=matchcols$color[matchcols$unique_algo==i],
-               pch=matchcols$ltype[matchcols$unique_algo==i])
+               col=matchcols$color_set[matchcols$unique_algo==i],
+               pch=matchcols$ltype_set[matchcols$unique_algo==i])
+        
+        print(matchcols$color_set[matchcols$unique_algo==i])
+        print(i)
+        print(set_cols[matchcols$ltype_set[matchcols$unique_algo==i]])
+        print("===")
+
+        # Add points to the line for every step
       }
     }
     
   }
   # Reset any plotting settings so the legend can be placed in the bottom right
   reset()
-  
+  print(matchcols)
   # Plot the legend
   legend("bottomright", 
-         legend=unique_algo,
+         legend=matchcols$unique_algo,
          lty=3,
          pch=matchcols$ltype,
          col=matchcols$color)
@@ -319,6 +326,11 @@ if (plot_eps){
              family = "Times")
 }
 
+# Write to pdf?
+if (plot_pdf){
+  pdf(paste0(output_dir,"lcurve_per_set_me.pdf"),width=7,height=9)
+}
+
 # Set plotting settings
 par(mar=c(5, 5, 1.5, 0.0) + 0.1)
 par(mfrow=c(3,2))
@@ -326,16 +338,47 @@ par(mfrow=c(3,2))
 # Retrieve the lcurve median absolute error and plot
 temp_summary_lcurves <- summary_lcurves[summary_lcurves$perf_type == "me",]
 mean_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lcurves, mean)
-plot_algo_lcurve_exp(mean_perf_algo)
+sd_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lcurves, sd)
+plot_algo_lcurve_exp(mean_perf_algo,sd_perf_algo)
 
 # Close dev if figure was written
 if (plot_pdf | plot_eps){
   dev.off()
 }
 
+
 # Write to eps?
 if (plot_eps){
-  postscript("lcurve_per_set_mae.eps", width = 10, height = 10, horizontal = FALSE, 
+  postscript(paste0(output_dir,"lcurve_per_set_me_sd.eps"), width = 7, height = 9, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Write to pdf?
+if (plot_pdf){
+  pdf(paste0(output_dir,"lcurve_per_set_me_sd.pdf"),width=7,height=9)
+}
+
+# Set plotting settings
+par(mar=c(5, 5, 1.5, 0.0) + 0.1)
+par(mfrow=c(3,2))
+
+
+# Retrieve the lcurve median absolute error and plot
+temp_summary_lcurves <- summary_lcurves[summary_lcurves$perf_type == "me",]
+mean_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lcurves, mean)
+sd_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lcurves, sd)
+plot_algo_lcurve_exp(sd_perf_algo,sd_perf_algo,ylab_lcurve="Standard deviation (s)")
+
+# Close dev if figure was written
+if (plot_pdf | plot_eps){
+  dev.off()
+}
+
+
+# Write to eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"lcurve_per_set_mae.eps"), width = 10, height = 10, horizontal = FALSE, 
              onefile = FALSE, paper = "special", colormodel = "cmyk", 
              family = "Times")
 }
@@ -347,7 +390,7 @@ par(mfrow=c(3,2))
 # Retrieve the lcurve mean absolute error and plot
 temp_summary_lcurves <- summary_lcurves[summary_lcurves$perf_type == "mae",]
 mean_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lcurves, median)
-plot_algo_lcurve_exp(mean_perf_algo)
+plot_algo_lcurve_exp(mean_perf_algo,mean_perf_algo,ylab_lcurve="Mean absolute error (s)")
 
 # Close dev if figure was written
 if (plot_pdf | plot_eps){
@@ -356,7 +399,7 @@ if (plot_pdf | plot_eps){
 
 # Write eps?
 if (plot_eps){
-  postscript("lcurve_per_set_cor.eps", width = 10, height = 10, horizontal = FALSE, 
+  postscript(paste0(output_dir,"lcurve_per_set_cor.eps"), width = 10, height = 10, horizontal = FALSE, 
              onefile = FALSE, paper = "special", colormodel = "cmyk", 
              family = "Times")
 }
@@ -368,7 +411,7 @@ par(mfrow=c(3,2))
 # Retrieve the correlation and plot
 temp_summary_lcurves <- summary_lcurves[summary_lcurves$perf_type == "correlation",]
 mean_perf_algo <- aggregate(perf~experiment+num_train+algo, data=temp_summary_lcurves, median)
-plot_algo_lcurve_exp(mean_perf_algo)
+plot_algo_lcurve_exp(mean_perf_algo,mean_perf_algo,ylab_lcurve="Pearson correlation")
 
 # Close dev if figure was written
 if (plot_pdf | plot_eps){
@@ -405,7 +448,7 @@ for (a in c("SVR","GB","BRR","AB","LASSO","RF","ANN")){
 error_df$rem <- NULL
 
 if (plot_eps){
-  postscript("corrplot_errors.eps", width = 7.5, height = 7.5, horizontal = FALSE, 
+  postscript(paste0(output_dir,"corrplot_errors.eps"), width = 7.5, height = 7.5, horizontal = FALSE, 
              onefile = FALSE, paper = "special", colormodel = "cmyk", 
              family = "Times")
 }
@@ -1466,3 +1509,729 @@ colnames(perf_mat) <- unique_algo_blended
 
 # Calculate the average rank of the mean absolute error per dataset
 apply(apply(perf_mat, 1, rank),1,mean)
+
+
+par(mfrow=c(6,7))
+cv_preds <- read.csv("data/predictions_algo_verbose_big_cv_name.csv")
+col_points <- c("black","blue","red","lightblue","magenta","yellow","darkgreen")
+
+bottom_experiments <- c("PFR-TK72","MPI_Symmetry","Stravs_22","Beck","UFZ_Phenomenex","FEM_short")
+unique_algo <- c("BRR","LASSO","ANN","AB","GB","RF","SVR")
+for (ue in unique_experi){
+  #plot(cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$tr,cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$pred)
+  #abline(a=0,b=1)
+  point_type = 0
+  for (algo in unique_algo){
+    par(mar=c(3.1,3.1,2.1,1.1))
+    point_type = point_type + 1
+    
+    if (algo == "BRR" && ue %in% bottom_experiments){
+      plot(cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$tr,
+           cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$pred,
+           pch=point_type,col=col_points[point_type],cex=0.75,
+           xlim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+           ylim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+           xlab="",ylab=""
+      )
+      mtext("Experimental retention time (s)",side=1,line=2,cex=0.6)
+      mtext("Predicted retention time (s)",side=2,line=2,cex=0.6)
+    }
+    
+    else if (algo == "BRR"){
+      plot(cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$tr,
+           cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$pred,
+           pch=point_type,col=col_points[point_type],cex=0.75,
+           xlim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+           ylim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+           xlab="",ylab=""
+      )
+      mtext("Predicted retention time (s)",side=2,line=2,cex=0.6)
+    }
+    
+    else if (ue %in% bottom_experiments){
+      plot(cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$tr,
+           cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$pred,
+           pch=point_type,col=col_points[point_type],cex=0.75,
+           xlim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+           ylim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+           xlab="",ylab=""
+      )
+      mtext("Experimental retention time (s)",side=1,line=2,cex=0.6)
+    }
+    
+    else {
+      plot(cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$tr,
+             cv_preds[cv_preds$experiment == ue & cv_preds$algo == algo,]$pred,
+             pch=point_type,col=col_points[point_type],cex=0.75,
+             xlim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+             ylim=c(0,max(cv_preds[cv_preds$experiment == ue,]$tr*1.1)),
+             xlab="",ylab=""
+           )
+    }
+    text(x = max(cv_preds[cv_preds$experiment == ue,]$tr)/2, y = max(cv_preds[cv_preds$experiment == ue,]$tr), labels = algo)
+    abline(a=0,b=1)
+    if (algo == "AB"){
+      title(paste(ue))  
+    }
+     #ue," - ",algo
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+plot_eps <- T
+
+
+
+#########################################################################################
+#                                                                                       #
+# Plot the CV results - big feature set                                                 #
+#                                                                                       #
+#########################################################################################
+
+
+#######################################################################
+#                                                                     #
+# Make a pairwise comparison between XGBoost and the other algorithms #
+#                                                                     #
+#######################################################################
+
+# Read the CV results for the 151 feature set
+cv_preds <- read.csv("data/predictions_algo_verbose_big_ann_cv.csv")
+
+
+# Get the experiments from the CV set
+unique_experi <- unique(cv_preds$experiment)
+
+# Get the algos from the CV set
+unique_algo <- unique(cv_preds$algo)
+
+# Initialize vectors that will hold the performance measures per dataset and algorithm
+t_algo_cor <- c()
+t_algo_mae <- c()
+t_algo_me <- c()
+
+# Iterate over the experiments and algorithms and use different performance measures 
+for (e in unique_experi){
+  for (a in unique_algo){
+    temp_cv_preds <- cv_preds[cv_preds$experiment == e & cv_preds$algo == a,]
+    t_algo_mae <- c(t_algo_mae,sum(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T)/length(temp_cv_preds$tr))
+    t_algo_cor <- c(t_algo_cor,cor(temp_cv_preds$tr,temp_cv_preds$pred))
+    t_algo_me <- c(t_algo_me,median(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T))
+    
+  }
+}
+
+# Make sure the performance measures are put in a matrix with the correct algorithm and experiment name
+perf_mae <- data.frame(matrix(t_algo_mae,ncol=length(unique_algo),byrow=T))
+colnames(perf_mae) <- unique_algo
+rownames(perf_mae) <- unique_experi
+
+perf_me <- data.frame(matrix(t_algo_me,ncol=length(unique_algo),byrow=T))
+colnames(perf_me) <- unique_algo
+rownames(perf_me) <- unique_experi
+
+# One plot per plotting window
+par(mfrow=c(1,1))
+
+# Plot eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"pairwise_comparison_ann_depth.eps"), width = 14, height = 4.2, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Plot settings
+par(mfrow=c(1,3))
+par(mar=c(5, 4, 0.5, 2) + 0.1)
+
+# Vector that holds combinations that have already been analyzed (counters A -> B and B -> A comparisons)
+analyzed <- c()
+
+# Get the maximum retention time per experiment based on the last identification
+max_rt <- tapply(cv_preds$tr, cv_preds$experiment, max)[rownames(perf_me)]
+
+# Iterate over all combinations of algorithms and do a pairwise comparison
+for (a in c("ANN - 2 hidden layers","ANN - 1 hidden layer","ANN - 5 hidden layers")){
+  for (b in c("ANN - 2 hidden layers","ANN - 1 hidden layer","ANN - 5 hidden layers")){
+    # If not analyzed yet; make a pairwise comparison between the algorithms
+    if (a != b & !(paste(a,b,sep="_") %in% analyzed) & !(paste(b,a,sep="_") %in% analyzed)){
+      # Change margins for algorithms at the sides...
+      par(mar=c(8, 5, 4, 2) + 0.1)
+
+      # Calculate the median error and normalized median error
+      perf_me$diff_algo <- perf_me[,b]-perf_me[,a]
+      perf_me$diff_algo_order <- (perf_me[,b]-perf_me[,a])/max_rt
+      
+      perf <- (perf_me$diff_algo[order(perf_me$diff_algo_order)]/max_rt[order(perf_me$diff_algo_order)])*100
+      
+      # Plot the pairwise comparison
+      barplot(perf,
+              names=rownames(perf_me)[order(perf_me$diff_algo)],las=2,cex.names=0.7,
+              main=paste(b," - ",a,"\n Average increase (%):",round(mean(perf),3)),
+              ylim=c(-10,10),ylab="Difference median error relative\n to the total elution time (%)")
+      
+      # Add pair to analyzed combinations
+      analyzed <- c(analyzed,paste(a,b,sep="_"))
+    }
+  }
+}
+
+# Close dev if figure was plotted
+if (plot_eps){
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#########################################################################################
+#                                                                                       #
+# Plot the CV results - big feature set                                                 #
+#                                                                                       #
+#########################################################################################
+
+#######################################################################
+#                                                                     #
+# Make a pairwise comparison between XGBoost and the other algorithms #
+#                                                                     #
+#######################################################################
+
+# Read the CV results for the 151 feature set
+cv_preds <- read.csv("data/predictions_algo_verbose_big_svr_cv.csv")
+
+
+# Get the experiments from the CV set
+unique_experi <- unique(cv_preds$experiment)
+
+# Get the algos from the CV set
+unique_algo <- unique(cv_preds$algo)
+
+# Initialize vectors that will hold the performance measures per dataset and algorithm
+t_algo_cor <- c()
+t_algo_mae <- c()
+t_algo_me <- c()
+
+# Iterate over the experiments and algorithms and use different performance measures 
+for (e in unique_experi){
+  for (a in unique_algo){
+    temp_cv_preds <- cv_preds[cv_preds$experiment == e & cv_preds$algo == a,]
+    t_algo_mae <- c(t_algo_mae,sum(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T)/length(temp_cv_preds$tr))
+    t_algo_cor <- c(t_algo_cor,cor(temp_cv_preds$tr,temp_cv_preds$pred))
+    t_algo_me <- c(t_algo_me,median(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T))
+    
+  }
+}
+
+# Make sure the performance measures are put in a matrix with the correct algorithm and experiment name
+perf_mae <- data.frame(matrix(t_algo_mae,ncol=length(unique_algo),byrow=T))
+colnames(perf_mae) <- unique_algo
+rownames(perf_mae) <- unique_experi
+
+perf_me <- data.frame(matrix(t_algo_me,ncol=length(unique_algo),byrow=T))
+colnames(perf_me) <- unique_algo
+rownames(perf_me) <- unique_experi
+
+# One plot per plotting window
+par(mfrow=c(1,1))
+
+# Plot eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"pairwise_comparison_svr_kernel.eps"), width = 14, height = 4.2, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Plot settings
+par(mfrow=c(1,3))
+par(mar=c(5, 4, 0.5, 2) + 0.1)
+
+# Vector that holds combinations that have already been analyzed (counters A -> B and B -> A comparisons)
+analyzed <- c()
+
+# Get the maximum retention time per experiment based on the last identification
+max_rt <- tapply(cv_preds$tr, cv_preds$experiment, max)[rownames(perf_me)]
+
+# Iterate over all combinations of algorithms and do a pairwise comparison
+for (a in c("SVR","SVR-L","SVR-RBF")){
+  for (b in c("SVR","SVR-L","SVR-RBF")){
+    # If not analyzed yet; make a pairwise comparison between the algorithms
+    if (a != b & !(paste(a,b,sep="_") %in% analyzed) & !(paste(b,a,sep="_") %in% analyzed)){
+      # Change margins for algorithms at the sides...
+      par(mar=c(8, 5, 4, 2) + 0.1)
+      
+      # Calculate the median error and normalized median error
+      perf_me$diff_algo <- perf_me[,b]-perf_me[,a]
+      perf_me$diff_algo_order <- (perf_me[,b]-perf_me[,a])/max_rt
+      
+      perf <- (perf_me$diff_algo[order(perf_me$diff_algo_order)]/max_rt[order(perf_me$diff_algo_order)])*100
+      
+      # Plot the pairwise comparison
+      barplot(perf,
+              names=rownames(perf_me)[order(perf_me$diff_algo)],las=2,cex.names=0.7,
+              main=paste(b," - ",a,"\n Average increase (%):",round(mean(perf),3)),
+              ylim=c(-10,10),ylab="Difference median error relative\n to the total elution time (%)")
+      
+      # Add pair to analyzed combinations
+      analyzed <- c(analyzed,paste(a,b,sep="_"))
+    }
+  }
+}
+
+# Close dev if figure was plotted
+if (plot_eps){
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+#########################################################################################
+#                                                                                       #
+# Plot the CV results - big feature set                                                 #
+#                                                                                       #
+#########################################################################################
+
+#######################################################################
+#                                                                     #
+# Make a pairwise comparison between XGBoost and the other algorithms #
+#                                                                     #
+#######################################################################
+
+# Read the CV results for the 151 feature set
+cv_preds <- read.csv("data/predictions_algo_verbose_simple_cv.csv")
+
+
+# Get the experiments from the CV set
+unique_experi <- unique(cv_preds$experiment)
+
+# Get the algos from the CV set
+unique_algo <- unique(cv_preds$algo)
+
+# Initialize vectors that will hold the performance measures per dataset and algorithm
+t_algo_cor <- c()
+t_algo_mae <- c()
+t_algo_me <- c()
+
+# Iterate over the experiments and algorithms and use different performance measures 
+for (e in unique_experi){
+  for (a in unique_algo){
+    temp_cv_preds <- cv_preds[cv_preds$experiment == e & cv_preds$algo == a,]
+    t_algo_mae <- c(t_algo_mae,sum(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T)/length(temp_cv_preds$tr))
+    t_algo_cor <- c(t_algo_cor,cor(temp_cv_preds$tr,temp_cv_preds$pred))
+    t_algo_me <- c(t_algo_me,median(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T))
+    
+  }
+}
+
+# Make sure the performance measures are put in a matrix with the correct algorithm and experiment name
+perf_mae <- data.frame(matrix(t_algo_mae,ncol=length(unique_algo),byrow=T))
+colnames(perf_mae) <- unique_algo
+rownames(perf_mae) <- unique_experi
+
+perf_me <- data.frame(matrix(t_algo_me,ncol=length(unique_algo),byrow=T))
+colnames(perf_me) <- unique_algo
+rownames(perf_me) <- unique_experi
+
+# One plot per plotting window
+par(mfrow=c(1,1))
+
+# Plot eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"pairwise_comparison_simple.eps"), width = 11.5, height = 12, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Plot settings
+par(mfrow=c(4,2))
+par(mar=c(5, 4, 0.5, 2) + 0.1)
+
+# Vector that holds combinations that have already been analyzed (counters A -> B and B -> A comparisons)
+analyzed <- c()
+
+# Get the maximum retention time per experiment based on the last identification
+max_rt <- tapply(cv_preds$tr, cv_preds$experiment, max)[rownames(perf_me)]
+
+# Iterate over all combinations of algorithms and do a pairwise comparison
+for (a in c("MolLogP")){
+  for (b in c("SVR","GB","BRR","AB","RF","ANN", "GB","LASSO")){
+    # If not analyzed yet; make a pairwise comparison between the algorithms
+    if (a != b & !(paste(a,b,sep="_") %in% analyzed) & !(paste(b,a,sep="_") %in% analyzed)){
+      # Change margins for algorithms at the sides...
+      par(mar=c(8,5, 4, 2) + 0.1)
+      
+      # Calculate the median error and normalized median error
+      perf_me$diff_algo <- perf_me[,b]-perf_me[,a]
+      perf_me$diff_algo_order <- (perf_me[,b]-perf_me[,a])/max_rt
+      
+      perf <- (perf_me$diff_algo[order(perf_me$diff_algo_order)]/max_rt[order(perf_me$diff_algo_order)])*100
+      
+      # Plot the pairwise comparison
+      barplot(perf,
+              names=rownames(perf_me)[order(perf_me$diff_algo)],las=2,cex.names=0.7,
+              main=paste(b," - ",a,"\n Average increase (%):",round(mean(perf),3)),
+              ylim=c(-10,10),ylab="Difference median error relative\n to the total elution time (%)")
+      
+      # Add pair to analyzed combinations
+      analyzed <- c(analyzed,paste(a,b,sep="_"))
+    }
+  }
+}
+
+# Close dev if figure was plotted
+if (plot_eps){
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+#########################################################################################
+#                                                                                       #
+# Plot the CV results - big feature set                                                 #
+#                                                                                       #
+#########################################################################################
+
+#######################################################################
+#                                                                     #
+# Make a pairwise comparison between XGBoost and the other algorithms #
+#                                                                     #
+#######################################################################
+
+# Read the CV results for the 151 feature set
+cv_preds <- read.csv("data/predictions_algo_verbose_simple_cv.csv")
+
+
+# Get the experiments from the CV set
+unique_experi <- unique(cv_preds$experiment)
+
+# Get the algos from the CV set
+unique_algo <- unique(cv_preds$algo)
+
+# Initialize vectors that will hold the performance measures per dataset and algorithm
+t_algo_cor <- c()
+t_algo_mae <- c()
+t_algo_me <- c()
+
+# Iterate over the experiments and algorithms and use different performance measures 
+for (e in unique_experi){
+  for (a in unique_algo){
+    temp_cv_preds <- cv_preds[cv_preds$experiment == e & cv_preds$algo == a,]
+    t_algo_mae <- c(t_algo_mae,sum(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T)/length(temp_cv_preds$tr))
+    t_algo_cor <- c(t_algo_cor,cor(temp_cv_preds$tr,temp_cv_preds$pred))
+    t_algo_me <- c(t_algo_me,median(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T))
+    
+  }
+}
+
+# Make sure the performance measures are put in a matrix with the correct algorithm and experiment name
+perf_mae <- data.frame(matrix(t_algo_mae,ncol=length(unique_algo),byrow=T))
+colnames(perf_mae) <- unique_algo
+rownames(perf_mae) <- unique_experi
+
+perf_me <- data.frame(matrix(t_algo_me,ncol=length(unique_algo),byrow=T))
+colnames(perf_me) <- unique_algo
+rownames(perf_me) <- unique_experi
+
+# One plot per plotting window
+par(mfrow=c(1,1))
+
+# Plot eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"pairwise_comparison_simple_zero.eps"), width = 11.5, height = 12, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Plot settings
+par(mfrow=c(4,2))
+par(mar=c(5, 4, 0.5, 2) + 0.1)
+
+# Vector that holds combinations that have already been analyzed (counters A -> B and B -> A comparisons)
+analyzed <- c()
+
+# Get the maximum retention time per experiment based on the last identification
+max_rt <- tapply(cv_preds$tr, cv_preds$experiment, max)[rownames(perf_me)]
+
+# Iterate over all combinations of algorithms and do a pairwise comparison
+for (a in c("MolLogP")){
+  for (b in c("SVR","GB","BRR","AB","RF","ANN", "GB","LASSO")){
+    # If not analyzed yet; make a pairwise comparison between the algorithms
+    if (a != b & !(paste(a,b,sep="_") %in% analyzed) & !(paste(b,a,sep="_") %in% analyzed)){
+      # Change margins for algorithms at the sides...
+      par(mar=c(8,5, 4, 2) + 0.1)
+      
+      # Calculate the median error and normalized median error
+      perf_me$diff_algo <- perf_me[,b]-max_rt/2 #perf_me[,a]
+      perf_me$diff_algo_order <- (perf_me[,b]-(max_rt/2))/max_rt
+      
+      perf <- (perf_me$diff_algo[order(perf_me$diff_algo_order)]/max_rt[order(perf_me$diff_algo_order)])*100
+      
+      # Plot the pairwise comparison
+      barplot(perf,
+              names=rownames(perf_me)[order(perf_me$diff_algo)],las=2,cex.names=0.7,
+              main=paste(b," - ",a,"\n Average increase (%):",round(mean(perf),3)),
+              ylim=c(-55,0),ylab="Difference median error relative\n to the total elution time (%)")
+      
+      # Add pair to analyzed combinations
+      analyzed <- c(analyzed,paste(a,b,sep="_"))
+    }
+  }
+}
+
+# Close dev if figure was plotted
+if (plot_eps){
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+#########################################################################################
+#                                                                                       #
+# Plot the CV results - big feature set                                                 #
+#                                                                                       #
+#########################################################################################
+
+#######################################################################
+#                                                                     #
+# Make a pairwise comparison between XGBoost and the other algorithms #
+#                                                                     #
+#######################################################################
+
+# Read the CV results for the 151 feature set
+cv_preds <- read.csv("data/predictions_algo_verbose_big_cv_simple_molwt.csv")
+
+
+# Get the experiments from the CV set
+unique_experi <- unique(cv_preds$experiment)
+
+# Get the algos from the CV set
+unique_algo <- unique(cv_preds$algo)
+
+# Initialize vectors that will hold the performance measures per dataset and algorithm
+t_algo_cor <- c()
+t_algo_mae <- c()
+t_algo_me <- c()
+
+# Iterate over the experiments and algorithms and use different performance measures 
+for (e in unique_experi){
+  for (a in unique_algo){
+    temp_cv_preds <- cv_preds[cv_preds$experiment == e & cv_preds$algo == a,]
+    t_algo_mae <- c(t_algo_mae,sum(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T)/length(temp_cv_preds$tr))
+    t_algo_cor <- c(t_algo_cor,cor(temp_cv_preds$tr,temp_cv_preds$pred))
+    t_algo_me <- c(t_algo_me,median(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T))
+    
+  }
+}
+
+# Make sure the performance measures are put in a matrix with the correct algorithm and experiment name
+perf_mae <- data.frame(matrix(t_algo_mae,ncol=length(unique_algo),byrow=T))
+colnames(perf_mae) <- unique_algo
+rownames(perf_mae) <- unique_experi
+
+perf_me <- data.frame(matrix(t_algo_me,ncol=length(unique_algo),byrow=T))
+colnames(perf_me) <- unique_algo
+rownames(perf_me) <- unique_experi
+
+# One plot per plotting window
+par(mfrow=c(1,1))
+
+# Plot eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"pairwise_comparison_simple.eps"), width = 11.5, height = 12, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Plot settings
+par(mfrow=c(4,2))
+par(mar=c(5, 4, 0.5, 2) + 0.1)
+
+# Vector that holds combinations that have already been analyzed (counters A -> B and B -> A comparisons)
+analyzed <- c()
+
+# Get the maximum retention time per experiment based on the last identification
+max_rt <- tapply(cv_preds$tr, cv_preds$experiment, max)[rownames(perf_me)]
+
+# Iterate over all combinations of algorithms and do a pairwise comparison
+for (a in c("MolWT")){
+  for (b in c("SVR","GB","BRR","AB","RF","ANN", "GB","LASSO")){
+    # If not analyzed yet; make a pairwise comparison between the algorithms
+    if (a != b & !(paste(a,b,sep="_") %in% analyzed) & !(paste(b,a,sep="_") %in% analyzed)){
+      # Change margins for algorithms at the sides...
+      par(mar=c(8,5, 4, 2) + 0.1)
+      
+      # Calculate the median error and normalized median error
+      perf_me$diff_algo <- perf_me[,b]-perf_me[,a]
+      perf_me$diff_algo_order <- (perf_me[,b]-perf_me[,a])/max_rt
+      
+      perf <- (perf_me$diff_algo[order(perf_me$diff_algo_order)]/max_rt[order(perf_me$diff_algo_order)])*100
+      
+      # Plot the pairwise comparison
+      barplot(perf,
+              names=rownames(perf_me)[order(perf_me$diff_algo)],las=2,cex.names=0.7,
+              main=paste(b," - ",a,"\n Average increase (%):",round(mean(perf),3)),
+              ylim=c(-10,10),ylab="Difference median error relative\n to the total elution time (%)")
+      
+      # Add pair to analyzed combinations
+      analyzed <- c(analyzed,paste(a,b,sep="_"))
+    }
+  }
+}
+
+# Close dev if figure was plotted
+if (plot_eps){
+  dev.off()
+}
+
+
+
+
+
+
+
+
+
+
+
+#########################################################################################
+#                                                                                       #
+# Plot the CV results - big feature set                                                 #
+#                                                                                       #
+#########################################################################################
+
+#######################################################################
+#                                                                     #
+# Make a pairwise comparison between XGBoost and the other algorithms #
+#                                                                     #
+#######################################################################
+
+# Read the CV results for the 151 feature set
+cv_preds <- read.csv("data/predictions_algo_verbose_big_cv_optimizer.csv")
+
+
+# Get the experiments from the CV set
+unique_experi <- unique(cv_preds$experiment)
+
+# Get the algos from the CV set
+unique_algo <- unique(cv_preds$algo)
+
+# Initialize vectors that will hold the performance measures per dataset and algorithm
+t_algo_cor <- c()
+t_algo_mae <- c()
+t_algo_me <- c()
+
+# Iterate over the experiments and algorithms and use different performance measures 
+for (e in unique_experi){
+  for (a in unique_algo){
+    temp_cv_preds <- cv_preds[cv_preds$experiment == e & cv_preds$algo == a,]
+    t_algo_mae <- c(t_algo_mae,sum(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T)/length(temp_cv_preds$tr))
+    t_algo_cor <- c(t_algo_cor,cor(temp_cv_preds$tr,temp_cv_preds$pred))
+    t_algo_me <- c(t_algo_me,median(abs(temp_cv_preds$tr-temp_cv_preds$pred),na.rm=T))
+    
+  }
+}
+
+# Make sure the performance measures are put in a matrix with the correct algorithm and experiment name
+perf_mae <- data.frame(matrix(t_algo_mae,ncol=length(unique_algo),byrow=T))
+colnames(perf_mae) <- unique_algo
+rownames(perf_mae) <- unique_experi
+
+perf_me <- data.frame(matrix(t_algo_me,ncol=length(unique_algo),byrow=T))
+colnames(perf_me) <- unique_algo
+rownames(perf_me) <- unique_experi
+
+# One plot per plotting window
+par(mfrow=c(1,1))
+
+# Plot eps?
+if (plot_eps){
+  postscript(paste0(output_dir,"pairwise_comparison_ann_optimizer.eps"), width = 11.5, height = 12, horizontal = FALSE, 
+             onefile = FALSE, paper = "special", colormodel = "cmyk", 
+             family = "Times")
+}
+
+# Plot settings
+par(mfrow=c(4,2))
+par(mar=c(5, 4, 0.5, 2) + 0.1)
+
+# Vector that holds combinations that have already been analyzed (counters A -> B and B -> A comparisons)
+analyzed <- c()
+
+# Get the maximum retention time per experiment based on the last identification
+max_rt <- tapply(cv_preds$tr, cv_preds$experiment, max)[rownames(perf_me)]
+
+# Iterate over all combinations of algorithms and do a pairwise comparison
+for (a in c("GSD","ADAM")){
+  for (b in c("GSD","ADAM")){
+    # If not analyzed yet; make a pairwise comparison between the algorithms
+    if (a != b & !(paste(a,b,sep="_") %in% analyzed) & !(paste(b,a,sep="_") %in% analyzed)){
+      # Change margins for algorithms at the sides...
+      par(mar=c(8, 2, 4, 2) + 0.1)
+      
+      # Calculate the median error and normalized median error
+      perf_me$diff_algo <- perf_me[,b]-perf_me[,a]
+      perf_me$diff_algo_order <- (perf_me[,b]-perf_me[,a])/max_rt
+      
+      perf <- (perf_me$diff_algo[order(perf_me$diff_algo_order)]/max_rt[order(perf_me$diff_algo_order)])*100
+      
+      # Plot the pairwise comparison
+      barplot(perf,
+              names=rownames(perf_me)[order(perf_me$diff_algo)],las=2,cex.names=0.7,
+              main=paste(b," - ",a,"\n Average increase (%):",round(mean(perf),3)),
+              ylim=c(-10,10),ylab="Difference median error relative\n to the total elution time (%)")
+      
+      # Add pair to analyzed combinations
+      analyzed <- c(analyzed,paste(a,b,sep="_"))
+    }
+  }
+}
+
+# Close dev if figure was plotted
+if (plot_eps){
+  dev.off()
+}
