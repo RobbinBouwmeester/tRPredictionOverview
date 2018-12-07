@@ -8,7 +8,7 @@ Robbin.bouwmeester@ugent.be
 # File and folder structure
 	./
 
-Contains 4 different directories with all the data, scripts, models and figures used in the manuscript. The folders are numbered in the order they should be executed to replicate all the experiments.
+Contains 4 different type of directories with all the data, scripts, models and figures used in the manuscript. The folders are numbered in the order they should be executed to replicate all the experiments.
 
 ##################################################################################
 
@@ -70,6 +70,22 @@ Python script used to train the regression models using different machine learni
 
 Python script used to apply the trained the regression models (pickled).
 
+    /2_TrainModels_ANN_depth/
+ 
+The folders and data to test different depths of the ANN.
+
+    /2_TrainModels_molwt/
+    
+The folders and data to test a baseline model based on mol wt.
+
+    /2_TrainModels_svr_force_kernel/
+    
+The folders and data to test different SVR kernels.
+
+    /2_TrainModels_time/
+    
+Get the calculation time for each algorithm.
+    
 ##################################################################################
 
 	/3_ProcessResults/
@@ -113,3 +129,7 @@ R script used for plotting the distribution of molecular weight in the aggregate
 	/4_VisualizeResults/visualize.R
 
 R script used for plotting all the results.
+
+    /4_VisualizeResults/simulate_errors_overlap_and_algo_timing.ipynb
+    
+IPython notebook that analyzes an induced error rate.
