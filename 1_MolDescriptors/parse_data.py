@@ -48,7 +48,7 @@ def rdkit_descriptors(mol):
 	return(ret_dict)
 
 def cdk_descriptors(mol,temp_f_smiles_name="tempsmiles.smi",temp_f_cdk_name="tempcdk.txt"):
-		"""
+	"""
 	Get the molecular descriptors in cdk
 
     Parameters
@@ -350,12 +350,12 @@ def get_features(infile_name="concat_train.csv",outfile_name="retmetfeatures_new
 
 if __name__ == "__main__":
 	# Parse the input databases
-	parse_predret()
-	parse_mona()
-	parse_kohlbacher()
+	#parse_predret()
+	#parse_mona()
+	#parse_kohlbacher()
 	
 	# Concatenate all the parsed files
-	concat_files(["mona_parsed.csv","kohlbacher_parsed.csv","predret_parsed.csv"])
+	concat_files(["smilesExtracted/mona_parsed.csv","smilesExtracted/kohlbacher_parsed.csv","smilesExtracted/predret_parsed.csv"])
 
 	# Calculate the molecular descriptors and write results to a file
 	get_features()
