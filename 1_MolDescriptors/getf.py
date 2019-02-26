@@ -154,4 +154,4 @@ def getf(mol,progs=["rdkit"]):
 if __name__ == "__main__":
 	test_smile = "N12CCC36C1CC(C(C2)=CCOC4CC5=O)C4C3N5c7ccccc76"
 	test_mol = Chem.MolFromSmiles(test_smile)
-	get_features(test_mol)
+	getf(test_mol)

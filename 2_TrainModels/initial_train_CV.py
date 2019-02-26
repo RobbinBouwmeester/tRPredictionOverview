@@ -61,7 +61,7 @@ adds=["_r1","_r2","_r3","_r4","_r5","_r6","_r7","_r8","_r9","_r10","_r11","_r12"
 
 
 def remove_low_std(X,std_val=0.01):
-	"""
+    """
 	Function that marks columns in the feature matrix based on their standard deviation.
 
     Parameters
@@ -86,7 +86,7 @@ def remove_low_std(X,std_val=0.01):
     return(rem_f)
 
 def remove_high_cor(X,upp_cor=0.98,low_cor=-0.98):
-	"""
+    """
 	Function that marks columns in the feature matrix based on their Pearson correlation.
 	One of the highly correlation columns is taken by random.
 
@@ -125,7 +125,7 @@ def remove_high_cor(X,upp_cor=0.98,low_cor=-0.98):
     return(rem_f)
 
 def sel_features(infile,verbose=True,remove_std=True,remove_cor=True,std_val=0.01,upp_cor=0.99,low_cor=-0.99,ignore_cols=["system","IDENTIFIER","time"]):
-	"""
+    """
 	Function used for feature selection based on standard deviation within a feature and correlation between features
 
     Parameters
@@ -176,7 +176,7 @@ def sel_features(infile,verbose=True,remove_std=True,remove_cor=True,std_val=0.0
     return(infile,infile.columns)
 
 def get_sets(infile):
-	"""
+    """
 	Function that maps a dataset name to a sliced version of a dataframe
 
     Parameters
@@ -201,7 +201,7 @@ def get_sets(infile):
     return(sets_dict)
 
 def remove_models(k,n):
-	"""
+    """
 	System call to remove pickled model files.
 
     Parameters
@@ -220,7 +220,7 @@ def remove_models(k,n):
     p.communicate()
 
 def scale_cols(selected_set):
-	"""
+    """
 	Scale features of a matrix
 
     Parameters
@@ -234,21 +234,18 @@ def scale_cols(selected_set):
 		dataframe with scaled features
     """
 	
-	# Drop the features that we need to keep for learning
     X = selected_set.drop(["time","IDENTIFIER","system"],axis=1)
-    
-	# Scale features
-	X_scaled = pd.DataFrame(scale(X))
+    X_scaled = pd.DataFrame(scale(X))
     X_scaled.columns = X.columns
     X_scaled.index = X.index
 
-	# Set scaled values to original dataframe
+    # Set scaled values to original dataframe
     for c in X_scaled.columns:
         selected_set[c] = X_scaled[c]
     return(selected_set)
 
-def main(infilen="train/retmetfeatures_new_rem_dupl.csv",feat_filename="features/selected_features_big.txt",scale=True):
-	"""
+def main(infilen="retmetfeatures_removed_duplicates.csv",feat_filename="features/selected_features_big.txt",scale=True):
+    """
 	Main function for training the retention time predictor.
 
     Parameters
@@ -269,8 +266,8 @@ def main(infilen="train/retmetfeatures_new_rem_dupl.csv",feat_filename="features
 	
     infile = pd.read_csv(infilen)   
     
-	# Try to read the indicated feat filename, if it does not exist; create one
-	try:
+    # Try to read the indicated feat filename, if it does not exist; create one
+    try:
         keep_f = [x.strip() for x in open(feat_filename).readlines()]
         infile = infile[keep_f]
     except IOError:

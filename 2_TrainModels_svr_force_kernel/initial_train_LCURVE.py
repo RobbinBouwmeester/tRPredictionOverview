@@ -265,7 +265,7 @@ def scale_cols(selected_set):
 		selected_set[c] = X_scaled[c]
 	return(selected_set)
 
-def main(infilen="train/retmetfeatures_new_rem_dupl.csv",scale=True):
+def main(infilen="train/retmetfeatures_removed_duplicates.csv",scale=True):
 	"""
 	Main function for training the retention time predictor.
 
@@ -326,7 +326,7 @@ def main(infilen="train/retmetfeatures_new_rem_dupl.csv",scale=True):
 			print "Training L1 %s,%s,%s" % (k,n,adds[ind])
 			
 			# Train regression model
-			preds_own = train_l1_func(train,names=[k,k,k,k,k,k,k],adds=[n,n,n,n,n,n,n,n],cv=cv)
+			preds_own = train_func(train,names=[k,k,k,k,k,k,k],adds=[n,n,n,n,n,n,n,n],cv=cv)
 
 			print "Applying L1 %s,%s,%s" % (k,n,adds[ind])
 			
