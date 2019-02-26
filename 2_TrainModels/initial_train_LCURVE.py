@@ -265,7 +265,7 @@ def scale_cols(selected_set):
 		selected_set[c] = X_scaled[c]
 	return(selected_set)
 
-def main(infilen="train/retmetfeatures_new_rem_dupl.csv",scale=True):
+def main(infilen="train/retmetfeatures_removed_duplicates.csv",scale=True):
 	"""
 	Main function for training the retention time predictor.
 
